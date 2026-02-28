@@ -3,13 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCWp41FFsE0LVAO3US2c3awOFNJq_WKTVM",
-  authDomain: "final-project-abb57.firebaseapp.com",
-  projectId: "final-project-abb57",
-  storageBucket: "final-project-abb57.firebasestorage.app",
-  messagingSenderId: "231959831045",
-  appId: "1:231959831045:web:c85807e6c3f237d7fa326c",
-  measurementId: "G-DMKP3DHVDY"
+  apiKey: "AIzaSyBl8sMf-IgpnQNrdEHtcYK41QB9jgm3-Gs",
+  authDomain: "exam-portal-168ff.firebaseapp.com",
+  projectId: "exam-portal-168ff",
+  storageBucket: "exam-portal-168ff.firebasestorage.app",
+  messagingSenderId: "58572659518",
+  appId: "1:58572659518:web:7199993e5f3f43ad68ea6f"
 };
 
 const app = initializeApp(firebaseConfig);

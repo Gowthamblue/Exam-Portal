@@ -1,94 +1,131 @@
-import { useState } from "react";
-import AdminCard from "../../components/AdminCard";
+import { useEffect, useState } from "react";
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  query, 
+  orderBy,
+  deleteDoc,
+  doc
+} from "firebase/firestore";
+import { db } from "../../firebase";
 
-const Announcements = () => {
-  const [announcementText, setAnnouncementText] = useState("");
+function Announcements() {
+  const [message, setMessage] = useState("");
+  const [priority, setPriority] = useState("normal");
+  const [announcements, setAnnouncements] = useState([]);
 
-  const [announcements, setAnnouncements] = useState([
-    {
-      id: 1,
-      message: "Mock test scheduled on Feb 15",
-      date: "2026-02-03"
-    },
-    {
-      id: 2,
-      message: "New materials uploaded for CSE department",
-      date: "2026-02-01"
-    }
-  ]);
+  const fetchAnnouncements = async () => {
+    const q = query(
+      collection(db, "announcements"), 
+      orderBy("createdAt", "desc")
+    );
 
-  const handleAddAnnouncement = () => {
-    if (!announcementText.trim()) {
-      alert("Announcement cannot be empty");
+    const snapshot = await getDocs(q);
+
+    const data = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    setAnnouncements(data);
+  };
+
+  useEffect(() => {
+    fetchAnnouncements();
+  }, []);
+
+  const handleAddAnnouncement = async () => {
+    if (!message.trim()) {
+      alert("Please enter announcement message");
       return;
     }
 
-    const newAnnouncement = {
-      id: announcements.length + 1,
-      message: announcementText,
-      date: new Date().toISOString().split("T")[0]
-    };
+    await addDoc(collection(db, "announcements"), {
+      message: message,
+      priority: priority,
+      createdAt: new Date()
+    });
 
-    // Add new announcement at the top
-    setAnnouncements([newAnnouncement, ...announcements]);
-    setAnnouncementText("");
+    setMessage("");
+    setPriority("normal");
+    fetchAnnouncements();
+  };
+
+  const handleDelete = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this announcement?"
+    );
+
+    if (!confirmDelete) return;
+
+    await deleteDoc(doc(db, "announcements", id));
+
+    fetchAnnouncements();
   };
 
   return (
-    <AdminCard title="Announcements">
+    <>
+      <h3>Announcements</h3>
 
-      {/* Add Announcement Section */}
       <div className="mb-4">
-        <label className="form-label fw-semibold">
-          Add New Announcement
-        </label>
-
         <textarea
-          className="form-control"
-          rows="3"
-          placeholder="Type announcement here..."
-          value={announcementText}
-          onChange={(e) => setAnnouncementText(e.target.value)}
+          className="form-control mb-2"
+          placeholder="Enter announcement..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
         />
 
-        <div className="text-end">
-          <button
-            className="btn btn-primary mt-3"
-            onClick={handleAddAnnouncement}
-          >
-            ➕ Post Announcement
-          </button>
-        </div>
+        <select
+          className="form-control mb-2"
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+        >
+          <option value="normal">Normal</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+
+        <button className="btn btn-primary" onClick={handleAddAnnouncement}>
+          Post Announcement
+        </button>
       </div>
 
       <hr />
 
-      {/* Announcement List */}
-      <h5 className="mb-3">All Announcements</h5>
-
-      {announcements.length === 0 ? (
-        <p className="text-muted">No announcements posted yet.</p>
-      ) : (
-        announcements.map((a, index) => (
-          <div
-            key={a.id}
-            className="p-3 mb-3 border rounded"
-            style={{ backgroundColor: "#f8f9fa" }}
-          >
-            <div className="d-flex justify-content-between align-items-start">
-              <p className="mb-1 fw-semibold">
-                {index + 1}. {a.message}
-              </p>
+      {announcements.map((a) => (
+        <div
+          key={a.id}
+          className="p-3 mb-3 rounded shadow-sm"
+          style={{
+            borderLeft: `6px solid ${
+              a.priority === "high"
+                ? "#dc3545"
+                : a.priority === "medium"
+                ? "#ffc107"
+                : "#0d6efd"
+            }`
+          }}
+        >
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <p className="mb-1 fw-semibold">{a.message}</p>
               <small className="text-muted">
-                {a.date}
+                {a.createdAt?.toDate().toLocaleString()}
               </small>
             </div>
-          </div>
-        ))
-      )}
 
-    </AdminCard>
+            <button
+              className="btn btn-sm btn-danger"
+              onClick={() => handleDelete(a.id)}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      ))}
+    </>
   );
-};
+}
 
 export default Announcements;

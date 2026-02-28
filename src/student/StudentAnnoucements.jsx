@@ -7,49 +7,42 @@ function StudentAnnouncements() {
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
-      const q = query(
-        collection(db, "announcements"),
-        orderBy("date", "desc")
-      );
-
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => ({
+      const q = query(collection(db, "announcements"), orderBy("createdAt", "desc"));
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-
       setAnnouncements(data);
     };
 
     fetchAnnouncements();
   }, []);
 
-  const getPriorityColor = (priority) => {
-    if (priority === "high") return "#dc3545";
-    if (priority === "medium") return "#ffc107";
-    return "#0d6efd";
-  };
-
   return (
     <>
       <h3>Announcements</h3>
 
-      {announcements.length === 0 ? (
-        <p>No announcements available.</p>
-      ) : (
-        announcements.map((a) => (
-          <div
-            key={a.id}
-            className="p-3 mb-3 rounded shadow-sm"
-            style={{
-              borderLeft: `6px solid ${getPriorityColor(a.priority)}`
-            }}
-          >
-            <p className="mb-1 fw-semibold">{a.message}</p>
-            <small className="text-muted">{a.date}</small>
-          </div>
-        ))
-      )}
+      {announcements.map((a) => (
+        <div
+          key={a.id}
+          className="p-3 mb-3 rounded shadow-sm"
+          style={{
+            borderLeft: `6px solid ${
+              a.priority === "high"
+                ? "#dc3545"
+                : a.priority === "medium"
+                ? "#ffc107"
+                : "#0d6efd"
+            }`
+          }}
+        >
+          <p className="mb-1 fw-semibold">{a.message}</p>
+          <small className="text-muted">
+            {a.createdAt?.toDate().toLocaleString()}
+          </small>
+        </div>
+      ))}
     </>
   );
 }

@@ -48,19 +48,23 @@ function StudentMaterials() {
             </tr>
           </thead>
           <tbody>
-            {materials.map((m, index) => (
-              <tr key={m.id}>
-                <td>{index + 1}</td>
-                <td>{m.date}</td>
-                <td>{m.description}</td>
-                <td>
-                  <a href={m.link} target="_blank" rel="noreferrer">
-                    View
-                  </a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          {materials.map((m, index) => (
+            <tr key={m.id}>
+              <td>{index + 1}</td>
+              <td>
+                {m.createdAt?.toDate
+                  ? m.createdAt.toDate().toLocaleDateString()
+                  : "-"}
+              </td>
+              <td>{m.description}</td>
+              <td>
+                <a href={m.link} target="_blank" rel="noreferrer">
+                  View
+                </a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
         </table>
       )}
     </>
