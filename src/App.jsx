@@ -1,12 +1,14 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AdminLayout from "./layouts/AdminWelcome";
 import ProtectedRoute from "./components/ProtectedRoute";
+
 // Admin sections
 import StudentsList from "./admin/students/StudentsList";
 import StudentDetails from "./admin/students/StudentDetails";
 import Assessments from "./admin/assessments/Assessments";
 import Materials from "./admin/materials/Materials";
 import Announcements from "./admin/announcements/Announcements";
+import AIAssessmentGenerator from "./admin/ai/AIAssessmentGenerator";
 
 import StudentLayout from "./layouts/StudentLayout";
 import StudentDashboard from "./student/StudentDashboard";
@@ -14,6 +16,7 @@ import StudentMaterials from "./student/StudentMaterials";
 import StudentAssessments from "./student/StudentAssessments";
 import StudentAnnouncements from "./student/StudentAnnoucements";
 import MyResults from "./student/MyResults";
+import AttemptAssessment from "./student/AttemptAssessment";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import StudentProfile from "./student/StudentProfile";
@@ -40,6 +43,7 @@ function App() {
           <Route path="students" element={<StudentsList />} />
           <Route path="student/:id" element={<StudentDetails />} />
           <Route path="assessments" element={<Assessments />} />
+          <Route path="ai-generator" element={<AIAssessmentGenerator />} />
           <Route path="materials" element={<Materials />} />
           <Route path="announcements" element={<Announcements />} />
         </Route>
@@ -57,6 +61,7 @@ function App() {
           <Route path="profile" element={<StudentProfile />} />
           <Route path="results" element={<MyResults />} />
           <Route path="assessments" element={<StudentAssessments />} />
+          <Route path="attempt/:id" element={<AttemptAssessment />} />
           <Route path="materials" element={<StudentMaterials />} />
           <Route path="announcements" element={<StudentAnnouncements />} />
         </Route>

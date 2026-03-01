@@ -56,6 +56,12 @@ function AdminLayout() {
               </li>
 
               <li>
+                <NavLink to="ai-generator" style={navLinkStyle}>
+                  🤖 AI Generator
+                </NavLink>
+              </li>
+
+              <li>
                 <NavLink to="materials" style={navLinkStyle}>
                   📚 Materials
                 </NavLink>
