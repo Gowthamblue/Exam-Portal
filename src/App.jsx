@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AdminLayout from "./layouts/AdminWelcome";
-
+import ProtectedRoute from "./components/ProtectedRoute";
 // Admin sections
 import StudentsList from "./admin/students/StudentsList";
 import StudentDetails from "./admin/students/StudentDetails";
@@ -9,56 +9,57 @@ import Materials from "./admin/materials/Materials";
 import Announcements from "./admin/announcements/Announcements";
 
 import StudentLayout from "./layouts/StudentLayout";
-import StudentDashboard from "./student/Dashboard";
-
+import StudentDashboard from "./student/StudentDashboard";
 import StudentMaterials from "./student/StudentMaterials";
 import StudentAssessments from "./student/StudentAssessments";
 import StudentAnnouncements from "./student/StudentAnnoucements";
+import MyResults from "./student/MyResults";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import StudentProfile from "./student/StudentProfile";
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* Admin Layout */}
-        <Route path="/admin" element={<AdminLayout />}>
+        {/* Public routes */}
+        <Route path="/" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-          <Route
-            index
-            element={<h2>Welcome Admin 👋</h2>}
-          />
-          <Route path="/admin/students" element={<StudentsList />} />
-          <Route path="/admin/student/:id" element={<StudentDetails />} />
-
+        {/* Admin Layout — protected, role: admin */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<h2>Welcome Admin 👋</h2>} />
+          <Route path="students" element={<StudentsList />} />
+          <Route path="student/:id" element={<StudentDetails />} />
           <Route path="assessments" element={<Assessments />} />
           <Route path="materials" element={<Materials />} />
           <Route path="announcements" element={<Announcements />} />
-
         </Route>
 
-
-          <Route path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-
-
-
-          <Route path="/student" element={<StudentLayout />}>
-          <Route
-            index
-            element={<StudentDashboard/>}
-          />
+        {/* Student Layout — protected, role: student */}
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <StudentLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<StudentDashboard />} />
           <Route path="profile" element={<StudentProfile />} />
-          <Route path="students" element={<StudentsList />} />
-          <Route path="students/:id" element={<StudentDetails />} />
+          <Route path="results" element={<MyResults />} />
           <Route path="assessments" element={<StudentAssessments />} />
-          <Route path="materials" element={<StudentMaterials/>} />
+          <Route path="materials" element={<StudentMaterials />} />
           <Route path="announcements" element={<StudentAnnouncements />} />
-
         </Route>
-          
-
 
       </Routes>
     </BrowserRouter>

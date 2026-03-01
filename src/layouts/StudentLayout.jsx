@@ -46,6 +46,10 @@ function StudentLayout() {
             🏠 Dashboard
           </NavLink>
 
+          <NavLink to="results" style={navStyle}>
+            📈 My Results
+          </NavLink>
+
           <NavLink to="materials" style={navStyle}>
             📚 Materials
           </NavLink>
