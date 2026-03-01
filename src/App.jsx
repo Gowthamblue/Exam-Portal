@@ -16,6 +16,7 @@ import StudentAssessments from "./student/StudentAssessments";
 import StudentAnnouncements from "./student/StudentAnnoucements";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import StudentProfile from "./student/StudentProfile";
 function App() {
   return (
     <BrowserRouter>
@@ -28,8 +29,8 @@ function App() {
             index
             element={<h2>Welcome Admin 👋</h2>}
           />
-          <Route path="students" element={<StudentsList />} />
-          <Route path="students/:id" element={<StudentDetails />} />
+          <Route path="/admin/students" element={<StudentsList />} />
+          <Route path="/admin/student/:id" element={<StudentDetails />} />
 
           <Route path="assessments" element={<Assessments />} />
           <Route path="materials" element={<Materials />} />
@@ -48,6 +49,7 @@ function App() {
             index
             element={<StudentDashboard/>}
           />
+          <Route path="profile" element={<StudentProfile />} />
           <Route path="students" element={<StudentsList />} />
           <Route path="students/:id" element={<StudentDetails />} />
           <Route path="assessments" element={<StudentAssessments />} />

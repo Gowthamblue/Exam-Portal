@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
-import { collection, query, where, getDocs } from "firebase/firestore";
 import { db, auth } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  getDoc
+} from "firebase/firestore";
 
 function StudentAssessments() {
   const [assessments, setAssessments] = useState([]);
@@ -19,8 +25,9 @@ function StudentAssessments() {
         where("department", "==", department)
       );
 
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => ({
+      const snapshot = await getDocs(q);
+
+      const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
@@ -31,49 +38,55 @@ function StudentAssessments() {
     fetchAssessments();
   }, []);
 
-  const today = new Date();
-
   return (
     <>
       <h3>Assessments</h3>
 
-      <table className="table table-bordered mt-3">
-        <thead className="table-dark">
-          <tr>
-            <th>S.No</th>
-            <th>Description</th>
-            <th>Status</th>
-            <th>Link</th>
-          </tr>
-        </thead>
-        <tbody>
-          {assessments.map((a, index) => {
-            const start = new Date(a.startDate);
-            const end = new Date(a.endDate);
-
-            let status = "Expired";
-            if (today < start) status = "Upcoming";
-            if (today >= start && today <= end) status = "Active";
-
-            return (
-              <tr key={a.id}>
-                <td>{index + 1}</td>
-                <td>{a.description}</td>
-                <td>{status}</td>
-                <td>
-                  {status === "Active" ? (
-                    <a href={a.link} target="_blank" rel="noreferrer">
-                      Take Test
-                    </a>
-                  ) : (
-                    "-"
-                  )}
-                </td>
+      {assessments.length === 0 ? (
+        <p>No assessments available.</p>
+      ) : (
+        <div className="table-responsive mt-3">
+          <table className="table table-bordered">
+            <thead className="table-dark">
+              <tr>
+                <th>S.No</th>
+                <th>Title</th>
+                <th>Last Date</th>
+                <th>Open</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {assessments.map((a, index) => {
+                const today = new Date();
+                const lastDate = new Date(a.lastDate);
+                const isClosed = today > lastDate;
+
+                return (
+                  <tr key={a.id}>
+                    <td>{index + 1}</td>
+                    <td>{a.title}</td>
+                    <td>{a.lastDate}</td>
+                    <td>
+                      {isClosed ? (
+                        <span className="badge bg-danger">Closed</span>
+                      ) : (
+                        <a
+                          href={a.formLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-sm btn-success"
+                        >
+                          Start Test
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </>
   );
 }

@@ -41,6 +41,7 @@ function StudentLayout() {
           className="p-3 text-white"
           style={{ width: "220px", backgroundColor: "#1e293b" }}
         >
+          <NavLink to="profile" style={navStyle}>👤 Profile</NavLink>
           <NavLink to="" end style={navStyle}>
             🏠 Dashboard
           </NavLink>
