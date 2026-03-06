@@ -116,6 +116,7 @@ function Register() {
             <option value="CSE">CSE</option>
             <option value="ECE">ECE</option>
             <option value="MECH">MECH</option>
+            <option value="IT"></option>
           </select>
 
           <input
