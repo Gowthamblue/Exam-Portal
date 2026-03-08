@@ -10,6 +10,7 @@ import {
   getDocs
 } from "firebase/firestore";
 import { useNavigate, Link } from "react-router-dom";
+import { useDepartments } from "../hooks/useDepartments";
 
 function Register() {
   const [registerNumber, setRegisterNumber] = useState("");
@@ -18,6 +19,7 @@ function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { departments, loading: deptsLoading } = useDepartments();
 
   const navigate = useNavigate();
 
@@ -113,10 +115,12 @@ function Register() {
             required
           >
             <option value="">Select Department</option>
-            <option value="CSE">CSE</option>
-            <option value="ECE">ECE</option>
-            <option value="MECH">MECH</option>
-            <option value="IT"></option>
+            {deptsLoading
+              ? <option>Loading departments...</option>
+              : departments.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))
+            }
           </select>
 
           <input

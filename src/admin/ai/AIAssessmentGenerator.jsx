@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../firebase";
+import { useDepartments } from "../../hooks/useDepartments";
 
-const departments = ["CSE", "ECE", "MECH"];
 
 // ── PDF text extraction using pdf.js (loaded from CDN) ────────────────────
 
@@ -142,6 +142,7 @@ const STAGES = {
 // ── Component ──────────────────────────────────────────────────────────────
 
 function AIAssessmentGenerator() {
+  const { departments } = useDepartments();
   const [stage, setStage] = useState(STAGES.IDLE);
   const [file, setFile] = useState(null);
   const [manualText, setManualText] = useState("");

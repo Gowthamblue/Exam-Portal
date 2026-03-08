@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
+import { useDepartments } from "../../hooks/useDepartments";
 import { useNavigate } from "react-router-dom";
 import AdminCard from "../../components/AdminCard";
 
-const departments = ["All", "CSE", "ECE", "MECH"];
 
 function StudentsList() {
+  const { departments: deptList } = useDepartments();
+  const departments = ["All", ...deptList];
   const [students, setStudents] = useState([]);
   const [selectedDept, setSelectedDept] = useState("All");
   const [search, setSearch] = useState("");

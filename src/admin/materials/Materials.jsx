@@ -5,8 +5,8 @@ import {
   deleteDoc, doc, addDoc
 } from "firebase/firestore";
 import { db } from "../../firebase";
+import { useDepartments } from "../../hooks/useDepartments";
 
-const departments = ["CSE", "ECE", "MECH"];
 
 const getMaterialType = (link = "") => {
   const l = link.toLowerCase();
@@ -26,6 +26,7 @@ const getMaterialType = (link = "") => {
 };
 
 function Materials() {
+  const { departments } = useDepartments();
   const [selectedDept, setSelectedDept] = useState(null);
   const [materials, setMaterials]       = useState([]);
   const [showForm, setShowForm]         = useState(false);

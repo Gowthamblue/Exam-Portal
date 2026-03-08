@@ -10,10 +10,11 @@ import {
   doc
 } from "firebase/firestore";
 import { db } from "../../firebase";
+import { useDepartments } from "../../hooks/useDepartments";
 
-const departments = ["CSE", "ECE", "MECH"];
 
 function Assessments() {
+  const { departments } = useDepartments();
   const [selectedDept, setSelectedDept] = useState(null);
   const [tab, setTab] = useState("google");
 

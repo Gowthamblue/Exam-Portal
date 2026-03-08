@@ -3,6 +3,7 @@ import AdminLayout from "./layouts/AdminWelcome";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Admin sections
+import Departments from "./admin/depatments/Departments";
 import StudentsList from "./admin/students/StudentsList";
 import StudentDetails from "./admin/students/StudentDetails";
 import Assessments from "./admin/assessments/Assessments";
@@ -46,6 +47,7 @@ function App() {
           <Route path="ai-generator" element={<AIAssessmentGenerator />} />
           <Route path="materials" element={<Materials />} />
           <Route path="announcements" element={<Announcements />} />
+          <Route path="departments" element={<Departments />} />
         </Route>
 
         {/* Student Layout — protected, role: student */}

@@ -10,6 +10,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase";
+import { useDepartments } from "../../hooks/useDepartments";
 
 const PRIORITY_CONFIG = {
   high:   { color: "#dc3545", bg: "#fff5f5", badge: "#fecaca", label: "High",   icon: "🔴" },
@@ -18,6 +19,7 @@ const PRIORITY_CONFIG = {
 };
 
 function Announcements() {
+  const { departments } = useDepartments();
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -128,9 +130,7 @@ function Announcements() {
               <label className="form-label fw-semibold" style={{ fontSize: "0.85rem" }}>Target Department</label>
               <select className="form-select" value={targetDept} onChange={(e) => setTargetDept(e.target.value)}>
                 <option value="all">📣 All Departments</option>
-                <option value="CSE">CSE</option>
-                <option value="ECE">ECE</option>
-                <option value="MECH">MECH</option>
+                {departments.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
           </div>
@@ -168,9 +168,7 @@ function Announcements() {
         <select className="form-select form-select-sm" style={{ maxWidth: "160px" }}
           value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
           <option value="all">All Depts</option>
-          <option value="CSE">CSE</option>
-          <option value="ECE">ECE</option>
-          <option value="MECH">MECH</option>
+          {departments.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
         {(search || filterPriority !== "all" || filterDept !== "all") && (
           <button className="btn btn-sm btn-outline-secondary"

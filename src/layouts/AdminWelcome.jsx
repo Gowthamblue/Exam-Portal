@@ -73,6 +73,12 @@ function AdminLayout() {
                 </NavLink>
               </li>
 
+              <li>
+                <NavLink to="departments" style={navLinkStyle}>
+                  🏛 Departments
+                </NavLink>
+              </li>
+
             </ul>
           </div>
 
