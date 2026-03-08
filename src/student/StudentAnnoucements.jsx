@@ -1,117 +1,89 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
 
-const PRIORITY_CONFIG = {
-  high:   { color: "#dc3545", bg: "#fff5f5", badge: "#fecaca", label: "High",   icon: "🔴", borderColor: "#dc3545" },
-  medium: { color: "#f59e0b", bg: "#fffbeb", badge: "#fde68a", label: "Medium", icon: "🟡", borderColor: "#f59e0b" },
-  normal: { color: "#0d6efd", bg: "#eff6ff", badge: "#bfdbfe", label: "Normal", icon: "🔵", borderColor: "#0d6efd" },
+const PRI = {
+  high:   { color:"#dc2626", bg:"#fef2f2", badge:"#fecaca", label:"High",   icon:"🔴", border:"#dc2626" },
+  medium: { color:"#d97706", bg:"#fffbeb", badge:"#fde68a", label:"Medium", icon:"🟡", border:"#d97706" },
+  normal: { color:"#1d4ed8", bg:"#eff6ff", badge:"#bfdbfe", label:"Normal", icon:"🔵", border:"#1d4ed8" },
 };
 
-function StudentAnnouncements() {
-  const [announcements, setAnnouncements] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [studentDept, setStudentDept] = useState(null);
-  const [filter, setFilter] = useState("all"); // all | high | medium | normal
-  const [search, setSearch] = useState("");
+const fmtDate = ts => {
+  if (!ts?.toDate) return "";
+  const d=ts.toDate(), now=new Date(), diff=now-d;
+  const mins=Math.floor(diff/60000), hrs=Math.floor(mins/60), days=Math.floor(hrs/24);
+  if (mins<1) return "Just now"; if (mins<60) return `${mins}m ago`;
+  if (hrs<24) return `${hrs}h ago`; if (days===1) return "Yesterday";
+  if (days<7) return `${days} days ago`;
+  return d.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+};
+
+export default function StudentAnnouncements() {
+  const [items,       setItems]       = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [dept,        setDept]        = useState(null);
+  const [filter,      setFilter]      = useState("all");
+  const [search,      setSearch]      = useState("");
 
   useEffect(() => {
-    const fetchData = async () => {
-      // Get student department for filtering
+    (async () => {
       const user = auth.currentUser;
       if (user) {
-        const userSnap = await getDoc(doc(db, "users", user.uid));
-        if (userSnap.exists()) setStudentDept(userSnap.data().department);
+        const snap = await getDoc(doc(db,"users",user.uid));
+        if (snap.exists()) setDept(snap.data().department);
       }
-
-      const q = query(collection(db, "announcements"), orderBy("createdAt", "desc"));
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setAnnouncements(data);
+      const q = query(collection(db,"announcements"), orderBy("createdAt","desc"));
+      const rs = await getDocs(q);
+      setItems(rs.docs.map(d=>({id:d.id,...d.data()})));
       setLoading(false);
-    };
-    fetchData();
+    })();
   }, []);
 
-  // Show only announcements meant for this student's dept or all depts
-  const relevant = announcements.filter((a) => {
-    const dept = a.targetDept || "all";
-    return dept === "all" || dept === studentDept;
-  });
+  const relevant = items.filter(a => { const d=a.targetDept||"all"; return d==="all"||d===dept; });
+  const filtered = relevant.filter(a =>
+    (filter==="all"||a.priority===filter) &&
+    (!search.trim()||a.message.toLowerCase().includes(search.toLowerCase()))
+  );
+  const counts = { high:relevant.filter(a=>a.priority==="high").length,
+                   medium:relevant.filter(a=>a.priority==="medium").length,
+                   normal:relevant.filter(a=>a.priority==="normal").length };
 
-  const filtered = relevant.filter((a) => {
-    const matchFilter = filter === "all" || a.priority === filter;
-    const matchSearch = search.trim() === "" || a.message.toLowerCase().includes(search.toLowerCase());
-    return matchFilter && matchSearch;
-  });
-
-  const counts = {
-    high:   relevant.filter((a) => a.priority === "high").length,
-    medium: relevant.filter((a) => a.priority === "medium").length,
-    normal: relevant.filter((a) => a.priority === "normal").length,
-  };
-
-  const highCount = counts.high;
-
-  const formatDate = (timestamp) => {
-    if (!timestamp?.toDate) return "";
-    const date = timestamp.toDate();
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-  };
+  if (loading) return (
+    <div style={{ textAlign:"center", padding:"60px 0" }}>
+      <div className="spinner-border text-primary" /><p className="mt-3 text-muted">Loading…</p>
+    </div>
+  );
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-4">
-        <div className="d-flex align-items-center gap-2 mb-1">
-          <h4 className="fw-bold mb-0">📢 Announcements</h4>
-          {highCount > 0 && (
-            <span className="badge bg-danger" style={{ fontSize: "0.75rem", animation: "pulse 2s infinite" }}>
-              {highCount} urgent
-            </span>
-          )}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:20, flexWrap:"wrap", gap:10 }}>
+        <div>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <h4 style={{ fontWeight:700, margin:0, color:"#0f172a" }}>📢 Announcements</h4>
+            {counts.high>0 && <span style={{ background:"#fef2f2", color:"#dc2626", padding:"2px 10px",
+              borderRadius:20, fontSize:".72rem", fontWeight:700, border:"1px solid #fecaca",
+              animation:"pulse 2s infinite" }}>{counts.high} urgent</span>}
+          </div>
+          <p style={{ color:"#64748b", fontSize:".85rem", margin:"4px 0 0" }}>
+            {relevant.length} announcement{relevant.length!==1?"s":""} for you
+            {dept && <span> · {dept} + General</span>}
+          </p>
         </div>
-        <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
-          {relevant.length} announcement{relevant.length !== 1 ? "s" : ""} for you
-          {studentDept && <span> &nbsp;·&nbsp; {studentDept} + General</span>}
-        </p>
       </div>
 
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.6; }
-        }
-      `}</style>
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }`}</style>
 
-      {/* Urgent banner — show if any high priority */}
-      {highCount > 0 && filter === "all" && search === "" && (
-        <div
-          className="rounded-3 p-3 mb-4 d-flex align-items-center gap-3"
-          style={{ backgroundColor: "#fff5f5", border: "1px solid #fecaca" }}
-        >
-          <span style={{ fontSize: "1.5rem" }}>⚠️</span>
+      {/* Urgent banner */}
+      {counts.high>0 && filter==="all" && !search && (
+        <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:10,
+          padding:"12px 16px", marginBottom:20, display:"flex", gap:12, alignItems:"center" }}>
+          <span style={{ fontSize:"1.4rem" }}>⚠️</span>
           <div>
-            <p className="fw-bold mb-0 text-danger" style={{ fontSize: "0.9rem" }}>
-              {highCount} urgent announcement{highCount > 1 ? "s" : ""} require your attention
+            <p style={{ margin:0, fontWeight:700, color:"#dc2626", fontSize:".9rem" }}>
+              {counts.high} urgent announcement{counts.high>1?"s":""} require your attention
             </p>
-            <button
-              className="btn btn-sm btn-link text-danger p-0"
-              style={{ fontSize: "0.8rem" }}
-              onClick={() => setFilter("high")}
-            >
+            <button onClick={()=>setFilter("high")} style={{ background:"none", border:"none",
+              color:"#dc2626", fontSize:".8rem", cursor:"pointer", padding:0, textDecoration:"underline" }}>
               View urgent only →
             </button>
           </div>
@@ -120,161 +92,93 @@ function StudentAnnouncements() {
 
       {/* Filters */}
       {relevant.length > 0 && (
-        <div className="d-flex gap-2 flex-wrap align-items-center mb-4">
-          {/* Search */}
-          <input
-            className="form-control form-control-sm"
-            placeholder="🔍 Search..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ maxWidth: "180px" }}
-          />
-
-          {/* Priority filter pills */}
-          {["all", "high", "medium", "normal"].map((p) => {
-            const cfg = p === "all" ? null : PRIORITY_CONFIG[p];
-            const isActive = filter === p;
-            const count = p === "all" ? relevant.length : counts[p];
-            if (p !== "all" && count === 0) return null;
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center", marginBottom:20 }}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…"
+            style={{ padding:"7px 12px", border:"1px solid #e2e8f0", borderRadius:8,
+              fontSize:".85rem", outline:"none", width:160 }} />
+          {["all","high","medium","normal"].map(p => {
+            const cfg = p==="all" ? null : PRI[p];
+            const cnt = p==="all" ? relevant.length : counts[p];
+            if (p!=="all" && cnt===0) return null;
+            const active = filter===p;
             return (
-              <button
-                key={p}
-                onClick={() => setFilter(p)}
-                className="btn btn-sm"
-                style={{
-                  borderRadius: "20px",
-                  backgroundColor: isActive ? (cfg?.color || "#1e293b") : "#f1f5f9",
-                  color: isActive ? "#fff" : "#374151",
-                  border: "none",
-                  fontSize: "0.78rem",
-                  fontWeight: isActive ? 600 : 400,
-                  padding: "4px 14px",
-                }}
-              >
-                {p === "all" ? `All (${count})` : `${cfg.icon} ${cfg.label} (${count})`}
+              <button key={p} onClick={()=>setFilter(p)} style={{
+                padding:"5px 14px", borderRadius:20, border:"none", cursor:"pointer", fontSize:".78rem",
+                fontWeight: active?700:500,
+                background: active ? (cfg?.color||"#1e293b") : "#f1f5f9",
+                color: active ? "#fff" : "#374151",
+                transition:"all .15s" }}>
+                {p==="all" ? `All (${cnt})` : `${cfg.icon} ${cfg.label} (${cnt})`}
               </button>
             );
           })}
-
-          {(search || filter !== "all") && (
-            <button
-              className="btn btn-sm btn-outline-secondary"
-              onClick={() => { setSearch(""); setFilter("all"); }}
-              style={{ fontSize: "0.78rem", borderRadius: "20px" }}
-            >
-              ✕ Clear
-            </button>
+          {(search||filter!=="all") && (
+            <button onClick={()=>{setSearch(""); setFilter("all");}} style={{
+              padding:"5px 14px", borderRadius:20, border:"1px solid #e2e8f0", background:"#fff",
+              color:"#64748b", fontSize:".78rem", cursor:"pointer" }}>✕ Clear</button>
           )}
         </div>
       )}
 
-      {/* Loading */}
-      {loading && (
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" />
-          <p className="text-muted mt-2">Loading announcements...</p>
-        </div>
-      )}
-
       {/* Empty states */}
-      {!loading && relevant.length === 0 && (
-        <div className="text-center py-5 text-muted">
-          <p style={{ fontSize: "3rem" }}>📭</p>
-          <h6>No Announcements Yet</h6>
-          <p style={{ fontSize: "0.88rem" }}>Check back later. Your admin will post updates here.</p>
+      {relevant.length===0 && (
+        <div style={{ textAlign:"center", padding:"50px 0", color:"#94a3b8" }}>
+          <div style={{ fontSize:"2.5rem" }}>📭</div>
+          <h6 style={{ color:"#64748b", marginTop:8 }}>No Announcements Yet</h6>
+          <p style={{ fontSize:".85rem" }}>Check back later. Your admin will post updates here.</p>
+        </div>
+      )}
+      {relevant.length>0 && filtered.length===0 && (
+        <div style={{ textAlign:"center", padding:"40px 0", color:"#94a3b8" }}>
+          <div style={{ fontSize:"2rem" }}>🔍</div>
+          <p>No announcements match your filters.</p>
+          <button onClick={()=>{setSearch(""); setFilter("all");}} style={{
+            padding:"6px 16px", border:"1px solid #e2e8f0", borderRadius:8, background:"#fff",
+            cursor:"pointer", fontSize:".85rem" }}>Clear</button>
         </div>
       )}
 
-      {!loading && relevant.length > 0 && filtered.length === 0 && (
-        <div className="text-center py-4 text-muted">
-          <p style={{ fontSize: "2rem" }}>🔍</p>
-          <p>No announcements match your search.</p>
-          <button className="btn btn-sm btn-outline-secondary" onClick={() => { setSearch(""); setFilter("all"); }}>
-            Clear filters
-          </button>
-        </div>
-      )}
-
-      {/* Announcements list */}
-      {!loading && filtered.length > 0 && (
-        <div className="d-flex flex-column gap-3">
-          {filtered.map((a, index) => {
-            const cfg = PRIORITY_CONFIG[a.priority] || PRIORITY_CONFIG.normal;
-            const isNew = a.createdAt?.toDate && (new Date() - a.createdAt.toDate()) < 86400000; // < 24h
-
-            return (
-              <div
-                key={a.id}
-                className="rounded-3 p-3"
-                style={{
-                  borderLeft: `5px solid ${cfg.borderColor}`,
-                  backgroundColor: cfg.bg,
-                  border: `1px solid ${cfg.borderColor}22`,
-                  borderLeftWidth: "5px",
-                  boxShadow: a.priority === "high" ? "0 2px 8px rgba(220,53,69,0.12)" : "0 1px 4px rgba(0,0,0,0.05)",
-                  transition: "transform 0.15s",
-                }}
-              >
-                {/* Top row: badges + time */}
-                <div className="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
-                  <div className="d-flex gap-2 flex-wrap align-items-center">
-                    <span
-                      className="badge"
-                      style={{ backgroundColor: cfg.badge, color: cfg.color, fontSize: "0.72rem" }}
-                    >
-                      {cfg.icon} {cfg.label}
-                    </span>
-                    {a.targetDept && a.targetDept !== "all" ? (
-                      <span className="badge bg-primary" style={{ fontSize: "0.72rem" }}>{a.targetDept}</span>
-                    ) : (
-                      <span className="badge bg-secondary" style={{ fontSize: "0.72rem", opacity: 0.7 }}>General</span>
-                    )}
-                    {isNew && (
-                      <span className="badge" style={{ backgroundColor: "#dcfce7", color: "#16a34a", fontSize: "0.68rem" }}>
-                        ✨ New
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-muted" style={{ fontSize: "0.78rem", whiteSpace: "nowrap" }}>
-                    🕐 {formatDate(a.createdAt)}
-                  </span>
+      {/* List */}
+      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+        {filtered.map(a => {
+          const cfg = PRI[a.priority] || PRI.normal;
+          const isNew = a.createdAt?.toDate && (new Date()-a.createdAt.toDate()) < 86400000;
+          return (
+            <div key={a.id} style={{ background:cfg.bg, borderLeft:`4px solid ${cfg.border}`,
+              borderRadius:"0 10px 10px 0", border:`1px solid ${cfg.border}18`,
+              borderLeftColor:cfg.border, borderLeftWidth:4, padding:"14px 18px",
+              boxShadow: a.priority==="high" ? "0 2px 8px rgba(220,38,38,.1)" : "0 1px 3px rgba(0,0,0,.04)" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8, flexWrap:"wrap", gap:6 }}>
+                <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
+                  <span style={{ background:cfg.badge, color:cfg.color, padding:"2px 10px",
+                    borderRadius:20, fontSize:".72rem", fontWeight:600 }}>{cfg.icon} {cfg.label}</span>
+                  {a.targetDept && a.targetDept!=="all"
+                    ? <span style={{ background:"#eff6ff", color:"#1d4ed8", padding:"2px 8px",
+                        borderRadius:20, fontSize:".72rem", fontWeight:600 }}>{a.targetDept}</span>
+                    : <span style={{ background:"#f1f5f9", color:"#64748b", padding:"2px 8px",
+                        borderRadius:20, fontSize:".72rem" }}>General</span>}
+                  {isNew && <span style={{ background:"#f0fdf4", color:"#16a34a", padding:"2px 8px",
+                    borderRadius:20, fontSize:".7rem", fontWeight:600 }}>✨ New</span>}
                 </div>
-
-                {/* Message */}
-                <p
-                  className="mb-0 fw-semibold"
-                  style={{
-                    fontSize: "0.95rem",
-                    lineHeight: "1.6",
-                    color: a.priority === "high" ? "#991b1b" : "#1e293b",
-                  }}
-                >
-                  {a.message}
-                </p>
-
-                {/* Full date tooltip on hover */}
-                {a.createdAt?.toDate && (
-                  <p className="mb-0 mt-1 text-muted" style={{ fontSize: "0.75rem" }}>
-                    {a.createdAt.toDate().toLocaleString("en-IN", {
-                      weekday: "short", day: "numeric", month: "short",
-                      year: "numeric", hour: "2-digit", minute: "2-digit",
-                    })}
-                  </p>
-                )}
+                <span style={{ fontSize:".75rem", color:"#94a3b8", whiteSpace:"nowrap" }}>🕐 {fmtDate(a.createdAt)}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <p style={{ margin:0, fontWeight:600, color: a.priority==="high"?"#991b1b":"#1e293b",
+                fontSize:".9rem", lineHeight:1.6 }}>{a.message}</p>
+              {a.createdAt?.toDate && (
+                <p style={{ margin:"6px 0 0", fontSize:".72rem", color:"#94a3b8" }}>
+                  {a.createdAt.toDate().toLocaleString("en-IN",{weekday:"short",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-      {/* Footer count */}
-      {!loading && filtered.length > 0 && (
-        <p className="text-muted text-center mt-4" style={{ fontSize: "0.8rem" }}>
-          Showing {filtered.length} of {relevant.length} announcements
+      {filtered.length>0 && (
+        <p style={{ textAlign:"center", color:"#94a3b8", fontSize:".78rem", marginTop:20 }}>
+          Showing {filtered.length} of {relevant.length}
         </p>
       )}
     </div>
   );
 }
-
-export default StudentAnnouncements;

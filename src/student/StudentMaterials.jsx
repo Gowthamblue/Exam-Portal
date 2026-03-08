@@ -2,267 +2,148 @@ import { useEffect, useState } from "react";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 
-function StudentMaterials() {
-  const [materials, setMaterials] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [department, setDepartment] = useState("");
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("newest"); // newest | oldest | az
+const TYPE = (link="") => {
+  const l = link.toLowerCase();
+  if (l.includes("youtube.com")||l.includes("youtu.be")) return { icon:"▶",  label:"Video",  color:"#dc2626", bg:"#fef2f2" };
+  if (l.endsWith(".pdf")||l.includes("pdf"))              return { icon:"📄", label:"PDF",    color:"#ea580c", bg:"#fff7ed" };
+  if (l.includes("drive.google.com"))                     return { icon:"📁", label:"Drive",  color:"#1d4ed8", bg:"#eff6ff" };
+  if (l.includes("docs.google.com"))                      return { icon:"📝", label:"Doc",    color:"#16a34a", bg:"#f0fdf4" };
+  if (l.includes("github.com"))                           return { icon:"💻", label:"Code",   color:"#1e293b", bg:"#f8fafc" };
+  if (l.includes("slides")||l.includes("ppt"))            return { icon:"📊", label:"Slides", color:"#d97706", bg:"#fffbeb" };
+  return                                                         { icon:"🔗", label:"Link",   color:"#6366f1", bg:"#f5f3ff" };
+};
+
+const fmtDate = ts => {
+  if (!ts?.toDate) return "–";
+  const d=ts.toDate(), now=new Date(), diff=Math.floor((now-d)/86400000);
+  if (diff===0) return "Today"; if (diff===1) return "Yesterday";
+  if (diff<7)  return `${diff} days ago`;
+  return d.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+};
+
+export default function StudentMaterials() {
+  const [materials,   setMaterials]   = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [department,  setDepartment]  = useState("");
+  const [search,      setSearch]      = useState("");
+  const [sortBy,      setSortBy]      = useState("newest");
 
   useEffect(() => {
-    const fetchMaterials = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      const userSnap = await getDoc(doc(db, "users", user.uid));
-      const dept = userSnap.data().department;
-      setDepartment(dept);
-
-      const q = query(collection(db, "materials"), where("department", "==", dept));
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setMaterials(data);
+    (async () => {
+      const user = auth.currentUser; if (!user) return;
+      const snap = await getDoc(doc(db,"users",user.uid));
+      const dept = snap.data().department; setDepartment(dept);
+      const rs   = await getDocs(query(collection(db,"materials"), where("department","==",dept)));
+      setMaterials(rs.docs.map(d=>({id:d.id,...d.data()})));
       setLoading(false);
-    };
-    fetchMaterials();
+    })();
   }, []);
 
-  // Detect material type from link
-  const getMaterialType = (link = "") => {
-    const l = link.toLowerCase();
-    if (l.includes("youtube.com") || l.includes("youtu.be"))
-      return { icon: "▶️", label: "Video", color: "#dc3545", bg: "#fff5f5" };
-    if (l.endsWith(".pdf") || l.includes("pdf"))
-      return { icon: "📄", label: "PDF", color: "#dc6c00", bg: "#fff8f0" };
-    if (l.includes("drive.google.com"))
-      return { icon: "📁", label: "Drive", color: "#1a73e8", bg: "#f0f6ff" };
-    if (l.includes("docs.google.com"))
-      return { icon: "📝", label: "Doc", color: "#0f9d58", bg: "#f0fdf4" };
-    if (l.includes("github.com"))
-      return { icon: "💻", label: "Code", color: "#1e293b", bg: "#f8fafc" };
-    if (l.includes("slides") || l.includes("ppt"))
-      return { icon: "📊", label: "Slides", color: "#f59e0b", bg: "#fffbeb" };
-    return { icon: "🔗", label: "Link", color: "#6366f1", bg: "#f5f3ff" };
-  };
-
-  // Sort + filter
-  const processed = [...materials]
-    .filter((m) =>
-      search.trim() === "" ||
-      m.description?.toLowerCase().includes(search.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortBy === "newest") {
-        return (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0);
-      }
-      if (sortBy === "oldest") {
-        return (a.createdAt?.toDate?.() || 0) - (b.createdAt?.toDate?.() || 0);
-      }
-      if (sortBy === "az") {
-        return (a.description || "").localeCompare(b.description || "");
-      }
-      return 0;
+  const list = [...materials]
+    .filter(m => !search.trim() || m.description?.toLowerCase().includes(search.toLowerCase()))
+    .sort((a,b) => {
+      if (sortBy==="newest") return (b.createdAt?.toDate?.()|| 0)-(a.createdAt?.toDate?.()|| 0);
+      if (sortBy==="oldest") return (a.createdAt?.toDate?.()|| 0)-(b.createdAt?.toDate?.()|| 0);
+      return (a.description||"").localeCompare(b.description||"");
     });
 
-  const formatDate = (ts) => {
-    if (!ts?.toDate) return "-";
-    const date = ts.toDate();
-    const now = new Date();
-    const diffDays = Math.floor((now - date) / 86400000);
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-  };
-
-  if (loading) {
-    return (
-      <div className="text-center py-5">
-        <div className="spinner-border text-primary" />
-        <p className="text-muted mt-2">Loading materials...</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div style={{ textAlign:"center", padding:"60px 0" }}>
+      <div className="spinner-border text-primary" /><p className="mt-3 text-muted">Loading materials…</p>
+    </div>
+  );
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-4">
-        <h4 className="fw-bold mb-1">📚 Study Materials</h4>
-        <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
-          {materials.length} material{materials.length !== 1 ? "s" : ""} for <strong>{department}</strong>
-        </p>
-      </div>
-
-      {/* Search + Sort bar */}
-      {materials.length > 0 && (
-        <div className="d-flex gap-2 flex-wrap align-items-center mb-4">
-          <input
-            className="form-control form-control-sm"
-            placeholder="🔍 Search materials..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ maxWidth: "240px" }}
-          />
-          <select
-            className="form-select form-select-sm"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            style={{ maxWidth: "160px" }}
-          >
-            <option value="newest">⬇ Newest First</option>
-            <option value="oldest">⬆ Oldest First</option>
-            <option value="az">🔤 A → Z</option>
-          </select>
-          {search && (
-            <button
-              className="btn btn-sm btn-outline-secondary"
-              onClick={() => setSearch("")}
-              style={{ fontSize: "0.78rem", borderRadius: "20px" }}
-            >
-              ✕ Clear
-            </button>
-          )}
-          <span className="text-muted ms-auto" style={{ fontSize: "0.8rem" }}>
-            {processed.length} of {materials.length} shown
-          </span>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {materials.length === 0 && (
-        <div className="text-center py-5 text-muted">
-          <p style={{ fontSize: "3rem" }}>📭</p>
-          <h6>No Materials Yet</h6>
-          <p style={{ fontSize: "0.88rem" }}>
-            Your admin hasn't uploaded any study materials for {department} yet.
-            <br />Check back soon!
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20, flexWrap:"wrap", gap:12 }}>
+        <div>
+          <h4 style={{ fontWeight:700, margin:0, color:"#0f172a" }}>📚 Study Materials</h4>
+          <p style={{ color:"#64748b", fontSize:".85rem", margin:"4px 0 0" }}>
+            {materials.length} material{materials.length!==1?"s":""} for <strong>{department}</strong>
           </p>
         </div>
-      )}
+        {materials.length > 0 && (
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…"
+              style={{ padding:"7px 12px", border:"1px solid #e2e8f0", borderRadius:8, fontSize:".85rem",
+                outline:"none", width:180 }} />
+            <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
+              style={{ padding:"7px 10px", border:"1px solid #e2e8f0", borderRadius:8, fontSize:".85rem",
+                outline:"none", background:"#fff" }}>
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="az">A → Z</option>
+            </select>
+            {search && <button onClick={()=>setSearch("")} style={{ padding:"6px 12px", border:"1px solid #e2e8f0",
+              borderRadius:8, background:"#fff", fontSize:".8rem", cursor:"pointer", color:"#64748b" }}>✕ Clear</button>}
+          </div>
+        )}
+      </div>
 
-      {/* No search results */}
-      {materials.length > 0 && processed.length === 0 && (
-        <div className="text-center py-4 text-muted">
-          <p style={{ fontSize: "2rem" }}>🔍</p>
-          <p>No materials match "<strong>{search}</strong>"</p>
-          <button className="btn btn-sm btn-outline-secondary" onClick={() => setSearch("")}>
-            Clear search
-          </button>
+      {materials.length === 0 && (
+        <div style={{ textAlign:"center", padding:"50px 0", color:"#94a3b8" }}>
+          <div style={{ fontSize:"2.5rem" }}>📭</div>
+          <h6 style={{ color:"#64748b", marginTop:8 }}>No Materials Yet</h6>
+          <p style={{ fontSize:".85rem" }}>Your admin hasn't uploaded any materials for {department} yet.</p>
         </div>
       )}
 
-      {/* Materials grid */}
-      {processed.length > 0 && (
-        <div className="row g-3">
-          {processed.map((m, index) => {
-            const type = getMaterialType(m.link);
-            const isNew = m.createdAt?.toDate && (new Date() - m.createdAt.toDate()) < 86400000 * 3;
+      {materials.length > 0 && list.length === 0 && (
+        <div style={{ textAlign:"center", padding:"40px 0", color:"#94a3b8" }}>
+          <div style={{ fontSize:"2rem" }}>🔍</div>
+          <p>No materials match "<strong>{search}</strong>"</p>
+          <button onClick={()=>setSearch("")} style={{ padding:"6px 16px", border:"1px solid #e2e8f0",
+            borderRadius:8, background:"#fff", cursor:"pointer", fontSize:".85rem" }}>Clear</button>
+        </div>
+      )}
 
-            return (
-              <div className="col-md-6" key={m.id}>
-                <div
-                  className="h-100 rounded-3 p-3"
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    backgroundColor: "#fff",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-                    transition: "box-shadow 0.2s, transform 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.1)";
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.05)";
-                    e.currentTarget.style.transform = "translateY(0)";
-                  }}
-                >
-                  <div className="d-flex gap-3 align-items-start">
-                    {/* Type icon */}
-                    <div
-                      className="d-flex align-items-center justify-content-center rounded-2 flex-shrink-0"
-                      style={{
-                        width: 48, height: 48,
-                        backgroundColor: type.bg,
-                        fontSize: "1.4rem",
-                        border: `1px solid ${type.color}22`,
-                      }}
-                    >
-                      {type.icon}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-grow-1 min-width-0">
-                      <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                        <span
-                          className="badge"
-                          style={{
-                            backgroundColor: type.bg,
-                            color: type.color,
-                            fontSize: "0.68rem",
-                            border: `1px solid ${type.color}33`,
-                          }}
-                        >
-                          {type.label}
-                        </span>
-                        {isNew && (
-                          <span className="badge" style={{ backgroundColor: "#dcfce7", color: "#16a34a", fontSize: "0.68rem" }}>
-                            ✨ New
-                          </span>
-                        )}
-                        <span className="badge bg-light text-secondary" style={{ fontSize: "0.68rem" }}>
-                          #{index + 1}
-                        </span>
-                      </div>
-
-                      <p
-                        className="fw-semibold mb-1"
-                        style={{
-                          fontSize: "0.92rem",
-                          lineHeight: "1.4",
-                          color: "#1e293b",
-                          overflow: "hidden",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                        }}
-                      >
-                        {m.description}
-                      </p>
-
-                      <div className="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
-                        <span className="text-muted" style={{ fontSize: "0.78rem" }}>
-                          🕐 {formatDate(m.createdAt)}
-                        </span>
-                        <a
-                          href={m.link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-sm fw-semibold"
-                          style={{
-                            backgroundColor: type.color,
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: "8px",
-                            padding: "4px 14px",
-                            fontSize: "0.8rem",
-                            textDecoration: "none",
-                          }}
-                        >
-                          Open {type.label} ↗
-                        </a>
-                      </div>
-                    </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))", gap:14 }}>
+        {list.map((m,idx) => {
+          const t = TYPE(m.link);
+          const isNew = m.createdAt?.toDate && (new Date()-m.createdAt.toDate()) < 86400000*3;
+          return (
+            <div key={m.id} style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:10,
+              padding:"16px", boxShadow:"0 1px 3px rgba(0,0,0,.04)",
+              transition:"box-shadow .2s, transform .2s" }}
+              onMouseEnter={e=>{ e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.1)";
+                e.currentTarget.style.transform="translateY(-2px)"; }}
+              onMouseLeave={e=>{ e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.04)";
+                e.currentTarget.style.transform="translateY(0)"; }}>
+              <div style={{ display:"flex", gap:14, alignItems:"flex-start" }}>
+                <div style={{ width:44, height:44, background:t.bg, border:`1px solid ${t.color}20`,
+                  borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center",
+                  fontSize:"1.3rem", flexShrink:0 }}>{t.icon}</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:"flex", gap:6, marginBottom:6, flexWrap:"wrap" }}>
+                    <span style={{ background:t.bg, color:t.color, padding:"2px 8px", borderRadius:20,
+                      fontSize:".7rem", fontWeight:600, border:`1px solid ${t.color}30` }}>{t.label}</span>
+                    {isNew && <span style={{ background:"#f0fdf4", color:"#16a34a", padding:"2px 8px",
+                      borderRadius:20, fontSize:".7rem", fontWeight:600 }}>✨ New</span>}
+                  </div>
+                  <p style={{ margin:0, fontWeight:600, color:"#1e293b", fontSize:".9rem", lineHeight:1.4,
+                    overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2,
+                    WebkitBoxOrient:"vertical" }}>{m.description}</p>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+                    marginTop:10, flexWrap:"wrap", gap:8 }}>
+                    <span style={{ fontSize:".75rem", color:"#94a3b8" }}>🕐 {fmtDate(m.createdAt)}</span>
+                    <a href={m.link} target="_blank" rel="noreferrer" style={{
+                      background:t.color, color:"#fff", padding:"4px 14px", borderRadius:8,
+                      fontSize:".78rem", fontWeight:600, textDecoration:"none", display:"inline-block" }}>
+                      Open {t.label} ↗
+                    </a>
                   </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {list.length > 0 && (
+        <p style={{ textAlign:"center", color:"#94a3b8", fontSize:".78rem", marginTop:20 }}>
+          Showing {list.length} of {materials.length}
+        </p>
       )}
     </div>
   );
 }
-
-export default StudentMaterials;
