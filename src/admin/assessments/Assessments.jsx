@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useDepartments } from "../../hooks/useDepartments";
+import { Link } from "react-router-dom";
 
 
 function Assessments() {
@@ -214,9 +215,9 @@ function Assessments() {
             <>
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h6 className="fw-bold mb-0">{selectedDept} — AI Generated Assessments</h6>
-                <a href="/admin/ai-generator" className="btn btn-sm btn-outline-primary">
+                <Link to="/admin/ai-generator" className="btn btn-sm btn-outline-primary">
                   🤖 Create New
-                </a>
+                </Link>
               </div>
 
               {aiLoading ? (
