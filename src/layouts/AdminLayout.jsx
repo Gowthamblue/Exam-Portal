@@ -123,8 +123,11 @@ function AdminLayout() {
       <div className={`asb-overlay${mobileOpen ? " show" : ""}`} onClick={closeMobile} />
       <aside className={`asb${mini ? " mini" : ""}${mobileOpen ? " open" : ""}`}>
         <div className="asb-logo">
-          <div className="asb-mark">AP</div>
-          <span className="asb-name">Admin Panel</span>
+          <NavLink to="/admin" end onClick={closeMobile}
+            style={{ display:"flex", alignItems:"center", gap:10, textDecoration:"none", flex:1, overflow:"hidden" }}>
+            <div className="asb-mark">AP</div>
+            <span className="asb-name">Admin Panel</span>
+          </NavLink>
           <button className="asb-toggle" onClick={() => setMini(m => !m)}
             title={mini ? "Expand sidebar" : "Collapse sidebar"}
             style={{ marginLeft: mini ? "auto" : undefined }}>

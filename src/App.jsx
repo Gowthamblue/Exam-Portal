@@ -22,13 +22,16 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import StudentProfile from "./student/StudentProfile";
 
+import Home from "./Home";
+import AdminWelcomePage from "./pages/AdminWelcomePage";
 function App() {
   return (
     <BrowserRouter>
       <Routes>
 
         {/* Public routes */}
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />}/>
         <Route path="/register" element={<Register />} />
 
         {/* Admin Layout — protected, role: admin */}
@@ -40,7 +43,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<h2>Welcome Admin 👋</h2>} />
+          <Route index element={<AdminWelcomePage/>} />
           <Route path="students" element={<StudentsList />} />
           <Route path="student/:id" element={<StudentDetails />} />
           <Route path="assessments" element={<Assessments />} />

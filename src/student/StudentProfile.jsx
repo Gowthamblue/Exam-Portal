@@ -4,6 +4,28 @@ import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "fireb
 
 const initials = (n="") => n.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
 
+// ✅ F component is OUTSIDE StudentProfile — fixes the focus loss bug
+const F = ({ label, name, value, type="text", disabled=false, options=null, placeholder="", editMode, onChange }) => (
+  <div style={{ marginBottom:16 }}>
+    <label style={{ display:"block", fontSize:".75rem", fontWeight:600, color:"#64748b",
+      textTransform:"uppercase", letterSpacing:".06em", marginBottom:4 }}>{label}</label>
+    {options
+      ? <select name={name} value={value||""} onChange={onChange} disabled={!editMode||disabled}
+          style={{ width:"100%", padding:"8px 12px", border:"1px solid #e2e8f0", borderRadius:8,
+            fontSize:".875rem", background:(!editMode||disabled)?"#f8fafc":"#fff",
+            color:"#1e293b", outline:"none" }}>
+          <option value="">Select…</option>
+          {options.map(o=><option key={o} value={o}>{o}</option>)}
+        </select>
+      : <input name={name} type={type} value={value||""} placeholder={placeholder}
+          onChange={onChange} disabled={!editMode||disabled}
+          style={{ width:"100%", padding:"8px 12px", border:"1px solid #e2e8f0", borderRadius:8,
+            fontSize:".875rem", background:(!editMode||disabled)?"#f8fafc":"#fff",
+            color:"#1e293b", outline:"none" }} />
+    }
+  </div>
+);
+
 export default function StudentProfile() {
   const [profile,    setProfile]    = useState({});
   const [editMode,   setEditMode]   = useState(false);
@@ -28,7 +50,7 @@ export default function StudentProfile() {
     })();
   }, []);
 
-  const onChange = e => setProfile({...profile, [e.target.name]: e.target.value});
+  const onChange = e => setProfile(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const onSave = async () => {
     const user = auth.currentUser; if (!user) return;
@@ -56,26 +78,8 @@ export default function StudentProfile() {
   const best  = total ? Math.max(...results.map(r=>r.percentage)) : 0;
   const pass  = results.filter(r=>r.percentage>=50).length;
 
-  const F = ({ label, name, value, type="text", disabled=false, options=null, placeholder="" }) => (
-    <div style={{ marginBottom:16 }}>
-      <label style={{ display:"block", fontSize:".75rem", fontWeight:600, color:"#64748b",
-        textTransform:"uppercase", letterSpacing:".06em", marginBottom:4 }}>{label}</label>
-      {options
-        ? <select name={name} value={value||""} onChange={onChange} disabled={!editMode||disabled}
-            style={{ width:"100%", padding:"8px 12px", border:"1px solid #e2e8f0", borderRadius:8,
-              fontSize:".875rem", background:(!editMode||disabled)?"#f8fafc":"#fff",
-              color:"#1e293b", outline:"none" }}>
-            <option value="">Select…</option>
-            {options.map(o=><option key={o} value={o}>{o}</option>)}
-          </select>
-        : <input name={name} type={type} value={value||""} placeholder={placeholder}
-            onChange={onChange} disabled={!editMode||disabled}
-            style={{ width:"100%", padding:"8px 12px", border:"1px solid #e2e8f0", borderRadius:8,
-              fontSize:".875rem", background:(!editMode||disabled)?"#f8fafc":"#fff",
-              color:"#1e293b", outline:"none" }} />
-      }
-    </div>
-  );
+  // Shorthand to pass editMode and onChange into F without repeating
+  const field = (props) => <F {...props} editMode={editMode} onChange={onChange} />;
 
   return (
     <div>
@@ -172,21 +176,21 @@ export default function StudentProfile() {
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0 24px" }}>
             <div>
-              <F label="Full Name"    name="name"           value={profile.name}           disabled />
-              <F label="Email"        name="email"          value={profile.email}          disabled />
-              <F label="Register No." name="registerNumber" value={profile.registerNumber} disabled />
+              {field({ label:"Full Name",    name:"name",           value:profile.name,           disabled:true })}
+              {field({ label:"Email",        name:"email",          value:profile.email,          disabled:true })}
+              {field({ label:"Register No.", name:"registerNumber", value:profile.registerNumber, disabled:true })}
             </div>
             <div>
-              <F label="Date of Birth" name="dob"        value={profile.dob}        type="date" />
-              <F label="Gender"        name="gender"      value={profile.gender}     options={["Male","Female","Prefer not to say"]} />
-              <F label="Blood Group"   name="bloodGroup"  value={profile.bloodGroup} options={["A+","A-","B+","B-","AB+","AB-","O+","O-"]} />
+              {field({ label:"Date of Birth", name:"dob",        value:profile.dob,        type:"date" })}
+              {field({ label:"Gender",        name:"gender",      value:profile.gender,     options:["Male","Female","Prefer not to say"] })}
+              {field({ label:"Blood Group",   name:"bloodGroup",  value:profile.bloodGroup, options:["A+","A-","B+","B-","AB+","AB-","O+","O-"] })}
             </div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0 24px" }}>
-            <F label="Phone"    name="phone"    value={profile.phone}    placeholder="10-digit mobile" />
-            <F label="LinkedIn" name="linkedin" value={profile.linkedin} placeholder="https://linkedin.com/in/…" />
+            {field({ label:"Phone",    name:"phone",    value:profile.phone,    placeholder:"10-digit mobile" })}
+            {field({ label:"LinkedIn", name:"linkedin", value:profile.linkedin, placeholder:"https://linkedin.com/in/…" })}
           </div>
-          <F label="GitHub" name="github" value={profile.github} placeholder="https://github.com/…" />
+          {field({ label:"GitHub", name:"github", value:profile.github, placeholder:"https://github.com/…" })}
         </div>
       )}
 
@@ -195,14 +199,14 @@ export default function StudentProfile() {
         <div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0 24px" }}>
             <div>
-              <F label="Department"     name="department"  value={profile.department}  disabled />
-              <F label="Year of Study"  name="yearOfStudy" value={profile.yearOfStudy} options={["1","2","3","4"]} />
-              <F label="Batch/Section"  name="batch"       value={profile.batch}       placeholder="e.g. 2022–2026" />
+              {field({ label:"Department",    name:"department",  value:profile.department,  disabled:true })}
+              {field({ label:"Year of Study", name:"yearOfStudy", value:profile.yearOfStudy, options:["1","2","3","4"] })}
+              {field({ label:"Batch/Section", name:"batch",       value:profile.batch,       placeholder:"e.g. 2022–2026" })}
             </div>
             <div>
-              <F label="Register Number" name="registerNumber" value={profile.registerNumber} disabled />
-              <F label="CGPA"            name="cgpa"           value={profile.cgpa}           placeholder="e.g. 8.5" />
-              <F label="College Email"   name="email"          value={profile.email}          disabled />
+              {field({ label:"Register Number", name:"registerNumber", value:profile.registerNumber, disabled:true })}
+              {field({ label:"CGPA",            name:"cgpa",           value:profile.cgpa,           placeholder:"e.g. 8.5" })}
+              {field({ label:"College Email",   name:"email",          value:profile.email,          disabled:true })}
             </div>
           </div>
           {results.length > 0 && (
@@ -249,15 +253,15 @@ export default function StudentProfile() {
       {/* Contact tab */}
       {tab==="contact" && (
         <div>
-          <F label="Full Address" name="address" value={profile.address} placeholder="Door no., Street, Area…" />
+          {field({ label:"Full Address", name:"address", value:profile.address, placeholder:"Door no., Street, Area…" })}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"0 24px" }}>
-            <F label="City"    name="city"    value={profile.city}    placeholder="e.g. Coimbatore" />
-            <F label="State"   name="state"   value={profile.state}   placeholder="e.g. Tamil Nadu" />
-            <F label="Pincode" name="pincode" value={profile.pincode} placeholder="6-digit" />
+            {field({ label:"City",    name:"city",    value:profile.city,    placeholder:"e.g. Coimbatore" })}
+            {field({ label:"State",   name:"state",   value:profile.state,   placeholder:"e.g. Tamil Nadu" })}
+            {field({ label:"Pincode", name:"pincode", value:profile.pincode, placeholder:"6-digit" })}
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0 24px" }}>
-            <F label="Phone" name="phone" value={profile.phone} placeholder="10-digit mobile" />
-            <F label="Email" name="email" value={profile.email} disabled />
+            {field({ label:"Phone", name:"phone", value:profile.phone, placeholder:"10-digit mobile" })}
+            {field({ label:"Email", name:"email", value:profile.email, disabled:true })}
           </div>
         </div>
       )}
