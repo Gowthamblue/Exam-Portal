@@ -8,6 +8,7 @@ const NAV = [
   { to: "materials",    emoji: "📚", label: "Materials"    },
   { to: "announcements",emoji: "📢", label: "Announcements"},
   { to: "departments",  emoji: "🏛", label: "Departments"  },
+  { to: "results",      emoji: "📈", label: "Results"      },
 ];
 
 function AdminLayout() {

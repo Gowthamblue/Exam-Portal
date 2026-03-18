@@ -10,6 +10,7 @@ import Assessments from "./admin/assessments/Assessments";
 import Materials from "./admin/materials/Materials";
 import Announcements from "./admin/announcements/Announcements";
 import AIAssessmentGenerator from "./admin/ai/AIAssessmentGenerator";
+import AdminResultsPage from "./admin/results/AdminResultpage";
 
 import StudentLayout from "./layouts/StudentLayout";
 import StudentDashboard from "./student/StudentDashboard";
@@ -51,6 +52,7 @@ function App() {
           <Route path="materials" element={<Materials />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="departments" element={<Departments />} />
+          <Route path="results" element={<AdminResultsPage />} />
         </Route>
 
         {/* Student Layout — protected, role: student */}
