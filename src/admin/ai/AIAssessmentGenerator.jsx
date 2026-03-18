@@ -673,17 +673,20 @@ function AIAssessmentGenerator() {
               <input
                 type="range"
                 className="form-range"
-                min={5}
-                max={20}
+                min={20}
+                max={50}
                 step={5}
                 value={questionCount}
                 onChange={(e) => setQuestionCount(Number(e.target.value))}
               />
               <div className="d-flex justify-content-between">
-                <small className="text-muted">5</small>
-                <small className="text-muted">10</small>
-                <small className="text-muted">15</small>
                 <small className="text-muted">20</small>
+                <small className="text-muted">25</small>
+                <small className="text-muted">30</small>
+                <small className="text-muted">35</small>
+                <small className="text-muted">40</small>
+                <small className="text-muted">45</small>
+                <small className="text-muted">50</small>
               </div>
             </div>
           </div>
