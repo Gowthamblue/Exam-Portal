@@ -1,18 +1,31 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../firebase";
-import { useDepartments } from "../../hooks/useDepartments";
 import { useNavigate } from "react-router-dom";
 import AdminCard from "../../components/AdminCard";
 
+const departments = ["All", "CSE", "ECE", "MECH"];
 
 function StudentsList() {
-  const { departments: deptList } = useDepartments();
-  const departments = ["All", ...deptList];
   const [students, setStudents] = useState([]);
   const [selectedDept, setSelectedDept] = useState("All");
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
+  const [deleting, setDeleting] = useState(null); // stores student being deleted
+  const [confirmId, setConfirmId] = useState(null); // stores id to confirm delete
+
+  const handleDelete = async (id) => {
+    setDeleting(id);
+    try {
+      await deleteDoc(doc(db, "users", id));
+      setStudents(prev => prev.filter(s => s.id !== id));
+    } catch (e) {
+      alert("Failed to delete student. Please try again.");
+    } finally {
+      setDeleting(null);
+      setConfirmId(null);
+    }
+  };
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -133,12 +146,20 @@ function StudentsList() {
                   </td>
                   <td>{s.phone || "—"}</td>
                   <td>
-                    <button
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => navigate(`/admin/student/${s.id}`)}
-                    >
-                      View
-                    </button>
+                    <div style={{ display:"flex", gap:6 }}>
+                      <button
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={() => navigate(`/admin/student/${s.id}`)}
+                      >
+                        View
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => setConfirmId(s.id)}
+                      >
+                        🗑 Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -146,6 +167,51 @@ function StudentsList() {
           </table>
         </div>
       )}
+      {/* Confirm Delete Modal */}
+      {confirmId && (() => {
+        const st = students.find(s => s.id === confirmId);
+        return (
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.45)",
+            display:"flex", alignItems:"center", justifyContent:"center", zIndex:999 }}>
+            <div style={{ background:"#fff", borderRadius:14, padding:"28px 32px",
+              maxWidth:400, width:"90%", boxShadow:"0 20px 60px rgba(0,0,0,.3)" }}>
+              <div style={{ textAlign:"center", marginBottom:16 }}>
+                <div style={{ fontSize:"2.5rem" }}>⚠️</div>
+                <h5 style={{ fontWeight:700, color:"#0f172a", marginTop:8 }}>Remove Student?</h5>
+              </div>
+              <p style={{ color:"#374151", fontSize:".9rem", textAlign:"center", marginBottom:8 }}>
+                You are about to permanently remove:
+              </p>
+              <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:8,
+                padding:"12px 16px", marginBottom:20, textAlign:"center" }}>
+                <p style={{ margin:0, fontWeight:700, color:"#991b1b" }}>{st?.name}</p>
+                <p style={{ margin:"4px 0 0", fontSize:".82rem", color:"#dc2626" }}>
+                  {st?.registerNumber} · {st?.department}
+                </p>
+              </div>
+              <p style={{ color:"#64748b", fontSize:".8rem", textAlign:"center", marginBottom:20 }}>
+                This will remove the student account. Their results will remain in the database.
+              </p>
+              <div style={{ display:"flex", gap:10 }}>
+                <button
+                  onClick={() => setConfirmId(null)}
+                  style={{ flex:1, padding:"10px", borderRadius:8, border:"1px solid #e2e8f0",
+                    background:"#fff", cursor:"pointer", fontWeight:600, fontSize:".88rem" }}>
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDelete(confirmId)}
+                  disabled={deleting === confirmId}
+                  style={{ flex:1, padding:"10px", borderRadius:8, border:"none",
+                    background:"#dc2626", color:"#fff", cursor:"pointer",
+                    fontWeight:700, fontSize:".88rem" }}>
+                  {deleting === confirmId ? "Removing…" : "Yes, Remove"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </AdminCard>
   );
 }

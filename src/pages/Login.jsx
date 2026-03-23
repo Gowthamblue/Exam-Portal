@@ -62,9 +62,9 @@ export default function Login() {
           <div style={{ width:36, height:36, borderRadius:9,
             background:"linear-gradient(135deg,#1d4ed8,#0ea5e9)",
             display:"flex", alignItems:"center", justifyContent:"center",
-            color:"#fff", fontWeight:800, fontSize:13 }}>EP</div>
+            color:"#fff", fontWeight:800, fontSize:13 }}>CCE</div>
           <div>
-            <div style={{ fontWeight:700, fontSize:".92rem", color:"#0f172a", lineHeight:1.2 }}>ExamPrep</div>
+            <div style={{ fontWeight:700, fontSize:".92rem", color:"#0f172a", lineHeight:1.2 }}>Centre for Competitive Examinations</div>
             <div style={{ fontSize:".68rem", color:"#94a3b8" }}>MKCE Student Portal</div>
           </div>
         </div>
