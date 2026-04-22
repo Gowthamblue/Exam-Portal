@@ -504,7 +504,7 @@ function AttemptAssessment() {
                 !window.confirm(`You have ${totalQ - answeredCount} unanswered question(s). Submit anyway?`))
                 return;
               handleSubmit();
-            }}>
+            }}>  
             ✓ Submit Test ({answeredCount}/{totalQ})
           </button>
         )}
