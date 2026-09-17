@@ -52,13 +52,24 @@ async function extractTextFromFile(file) {
 
 // ── Groq API MCQ generation (Free — no credit card needed) ──────────────────
 
-async function generateMCQsWithGemini(text, topic, count = 15) {
+async function generateMCQsWithGemini(text, topic, count = 15, difficulty = "mixed") {
   const apiKey = import.meta.env.VITE_GROQ_API_KEY;
 
   if (!apiKey) {
     throw new Error(
       "Groq API key not found. Add VITE_GROQ_API_KEY=your_key to your .env file."
     );
+  }
+
+  let difficultyInstruction = "";
+  if (difficulty === "easy") {
+    difficultyInstruction = "\n- Difficulty: ALL questions should be EASY - basic concepts, straightforward, suitable for beginners";
+  } else if (difficulty === "medium") {
+    difficultyInstruction = "\n- Difficulty: ALL questions should be MEDIUM - requires understanding and some application";
+  } else if (difficulty === "hard") {
+    difficultyInstruction = "\n- Difficulty: ALL questions should be HARD - advanced concepts, analytical thinking required";
+  } else {
+    difficultyInstruction = "\n- Difficulty mix: 40% easy, 40% medium, 20% hard";
   }
 
   const systemPrompt = `You are an expert educational assessment creator specializing in competitive exam preparation (GATE, placements, government exams).
@@ -72,16 +83,17 @@ STRICT OUTPUT FORMAT — respond with ONLY valid JSON, no markdown, no explanati
       "question": "Clear, precise question text",
       "options": { "A": "Option A", "B": "Option B", "C": "Option C", "D": "Option D" },
       "correctAnswer": "A",
-      "explanation": "Brief explanation"
+      "explanation": "Brief explanation",
+      "difficulty": "medium"
     }
   ]
 }
 Rules:
 - Questions must come directly from the material
-- Distractors must be plausible but clearly incorrect
-- Difficulty mix: 40% easy, 40% medium, 20% hard
+- Distractors must be plausible but clearly incorrect${difficultyInstruction}
 - No duplicate questions
 - correctAnswer must be exactly "A", "B", "C", or "D"
+- Include difficulty level ("easy", "medium", or "hard") for each question
 - Generate exactly ${count} questions`;
 
   const userMessage = `Study Material:\n${text.slice(0, 20000)}\n\nTopic: "${topic}"\n\nGenerate ${count} MCQs. Return ONLY the JSON object.`;
@@ -93,7 +105,7 @@ Rules:
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
@@ -151,6 +163,7 @@ function AIAssessmentGenerator() {
   const [department, setDepartment] = useState("");
   const [questionCount, setQuestionCount] = useState(10);
   const [lastDate, setLastDate] = useState("");
+  const [difficulty, setDifficulty] = useState("mixed"); // mixed | easy | medium | hard
   const [generated, setGenerated] = useState(null); // { title, questions }
   const [error, setError] = useState("");
   const [editingQ, setEditingQ] = useState(null); // index of question being edited
@@ -176,9 +189,9 @@ function AIAssessmentGenerator() {
       }
 
       setStage(STAGES.GENERATING);
-      setProgress(`Groq AI is analysing the content and generating ${questionCount} MCQs...`);
+      setProgress(`Groq AI is analysing the content and generating ${questionCount} ${difficulty} MCQs...`);
 
-      const result = await generateMCQsWithGemini(content, topic, questionCount);
+      const result = await generateMCQsWithGemini(content, topic, questionCount, difficulty);
 
       setGenerated(result);
       setStage(STAGES.PREVIEW);
@@ -196,6 +209,7 @@ function AIAssessmentGenerator() {
         title: generated.title,
         department,
         topic,
+        difficulty,
         lastDate,
         questionCount: generated.questions.length,
         questions: generated.questions,
@@ -216,6 +230,7 @@ function AIAssessmentGenerator() {
     setTopic("");
     setDepartment("");
     setLastDate("");
+    setDifficulty("mixed");
     setGenerated(null);
     setError("");
     setEditingQ(null);
@@ -279,7 +294,7 @@ function AIAssessmentGenerator() {
               </span>
               <h4 className="mb-1 fw-bold">{generated.title}</h4>
               <p className="mb-0 opacity-75">
-                {department} &nbsp;·&nbsp; {generated.questions.length} Questions &nbsp;·&nbsp; Due: {lastDate}
+                {department} &nbsp;·&nbsp; {difficulty === "mixed" ? "Mixed Difficulty" : difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} &nbsp;·&nbsp; {generated.questions.length} Questions &nbsp;·&nbsp; Due: {lastDate}
               </p>
             </div>
             <div className="d-flex gap-2">
@@ -557,7 +572,7 @@ function AIAssessmentGenerator() {
           <div>
             <h5 className="mb-0 fw-bold">AI Assessment Generator</h5>
             <p className="mb-0 opacity-75" style={{ fontSize: "0.85rem" }}>
-              Upload study material → Claude AI reads it → MCQs generated automatically
+              Upload study material → AI reads it → MCQs generated automatically
             </p>
           </div>
         </div>
@@ -574,7 +589,7 @@ function AIAssessmentGenerator() {
         {[
           { icon: "📄", label: "Upload Material" },
           { icon: "→", label: "" },
-          { icon: "🤖", label: "Claude Reads & Analyses" },
+          { icon: "🤖", label: "AI Reads & Analyses" },
           { icon: "→", label: "" },
           { icon: "📝", label: "MCQs Generated" },
           { icon: "→", label: "" },
@@ -648,7 +663,7 @@ function AIAssessmentGenerator() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
               />
-              <small className="text-muted">Helps Groq AI focus question generation</small>
+              <small className="text-muted">Helps AI focus question generation</small>
             </div>
 
             {/* Last date */}
@@ -663,6 +678,37 @@ function AIAssessmentGenerator() {
                 min={new Date().toISOString().split("T")[0]}
                 onChange={(e) => setLastDate(e.target.value)}
               />
+            </div>
+
+            {/* Difficulty */}
+            <div className="mb-3">
+              <label className="form-label fw-semibold" style={{ fontSize: "0.85rem" }}>
+                Difficulty Level *
+              </label>
+              <div className="d-flex gap-2 flex-wrap">
+                {[
+                  { value: "easy", label: "🟢 Easy" },
+                  { value: "medium", label: "🟡 Medium" },
+                  { value: "hard", label: "🔴 Hard" },
+                  { value: "mixed", label: "🎯 Mixed" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setDifficulty(opt.value)}
+                    className="btn btn-sm"
+                    style={{
+                      backgroundColor: difficulty === opt.value ? "#1a56db" : "#f1f5f9",
+                      color: difficulty === opt.value ? "#fff" : "#374151",
+                      border: difficulty === opt.value ? "none" : "1px solid #d1d5db",
+                      borderRadius: "20px",
+                      fontWeight: difficulty === opt.value ? "600" : "400",
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Question count */}
